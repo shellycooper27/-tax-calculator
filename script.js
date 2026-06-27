@@ -30,16 +30,23 @@ function newRegimeRules() {
 }
 
 function oldRegimeRules() {
+  const below60Slabs = [
+    { upto: 250000, rate: 0 },
+    { upto: 500000, rate: 0.05 },
+    { upto: 1000000, rate: 0.20 },
+    { upto: Infinity, rate: 0.30 },
+  ];
   return {
     standardDeduction: 50000,
     familyPensionDeductionCap: 15000,
     slabsByAge: {
-      below60: [
-        { upto: 250000, rate: 0 },
-        { upto: 500000, rate: 0.05 },
-        { upto: 1000000, rate: 0.20 },
-        { upto: Infinity, rate: 0.30 },
-      ],
+      below60: below60Slabs,
+      // Non-residents, HUF, AOP/BOI, and AJP always follow the below-60
+      // slab structure — no senior-citizen exemption applies to them.
+      nonresident: below60Slabs,
+      huf: below60Slabs,
+      aopboi: below60Slabs,
+      ajp: below60Slabs,
       senior: [
         { upto: 300000, rate: 0 },
         { upto: 500000, rate: 0.05 },
@@ -52,7 +59,13 @@ function oldRegimeRules() {
         { upto: Infinity, rate: 0.30 },
       ],
     },
-    basicExemptionByAge: { below60: 250000, senior: 300000, supersenior: 500000 },
+    // Non-residents, HUF, AOP/BOI, and Artificial Juridical Persons do not
+    // get the senior-citizen exemption slabs — they always use the below-60
+    // slab structure, regardless of the individual member's actual age.
+    basicExemptionByAge: {
+      below60: 250000, senior: 300000, supersenior: 500000,
+      nonresident: 250000, huf: 250000, aopboi: 250000, ajp: 250000,
+    },
     rebateLimit: 500000,
     rebateMax: 12500,
     maxSurchargeRate: 0.37,
@@ -253,11 +266,12 @@ function computeRegime(regime, fy, age, inputs) {
     deductions += inputs.sec80GG;
     deductions += inputs.sec80GGA;
     deductions += inputs.sec80GGC;
-    // 80TTA (savings interest, non-seniors) and 80TTB (all interest, seniors)
-    // are mutually exclusive by age — s.80TTB excludes s.80TTA for seniors.
-    if (age === "below60") {
+    // 80TTA (savings interest) is available to individuals and HUF; 80TTB
+    // (all interest, higher cap) is restricted to resident senior citizens
+    // and excludes 80TTA for them. AOP/BOI/AJP/non-residents get neither.
+    if (age === "below60" || age === "huf") {
       deductions += Math.min(inputs.sec80TTA, 10000);
-    } else {
+    } else if (age === "senior" || age === "supersenior") {
       deductions += Math.min(inputs.sec80TTB, 50000);
     }
     deductions += inputs.sec80U;
@@ -330,17 +344,21 @@ function computeRegime(regime, fy, age, inputs) {
 
   let slabTaxAmount = applyAgriIntegration(normalTaxableIncome, inputs.agriIncome, slabs, basicExemption);
 
-  // Section 87A rebate + marginal relief, based on total income; the
-  // rebate amount itself applies only against tax on normal slab income
-  // (not available against tax on 111A/112/112A capital gains, or against
-  // lottery/gaming/VDA/115BBE income).
+  // Section 87A rebate is available only to a "resident individual" — HUF,
+  // AOP/BOI, Artificial Juridical Persons, and non-residents get no rebate
+  // at all, regardless of income level. Marginal relief, where applicable,
+  // applies only against tax on normal slab income (not against tax on
+  // 111A/112/112A capital gains, or lottery/gaming/VDA/115BBE income).
+  const residentIndividual = age === "below60" || age === "senior" || age === "supersenior";
   let rebate = 0;
-  if (totalTaxableIncome <= rules.rebateLimit) {
-    rebate = Math.min(slabTaxAmount, rules.rebateMax);
-  } else {
-    const incomeAboveLimit = totalTaxableIncome - rules.rebateLimit;
-    if (incomeAboveLimit < slabTaxAmount) {
-      rebate = slabTaxAmount - incomeAboveLimit; // marginal relief
+  if (residentIndividual) {
+    if (totalTaxableIncome <= rules.rebateLimit) {
+      rebate = Math.min(slabTaxAmount, rules.rebateMax);
+    } else {
+      const incomeAboveLimit = totalTaxableIncome - rules.rebateLimit;
+      if (incomeAboveLimit < slabTaxAmount) {
+        rebate = slabTaxAmount - incomeAboveLimit; // marginal relief
+      }
     }
   }
   const slabTaxAfterRebate = Math.max(slabTaxAmount - rebate, 0);
