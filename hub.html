@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Tools — Tax, GST & More</title>
+<link rel="stylesheet" href="shared/theme.css" />
+<style>
+  .hub-header {
+    background: var(--navy);
+    color: #fff;
+    padding: 28px 24px;
+    text-align: center;
+  }
+  .hub-header h1 { margin: 0 0 6px; font-size: 1.6rem; }
+  .hub-header p { margin: 0; color: #cfd3dd; font-size: 0.95rem; }
+  .hub-grid {
+    max-width: 960px;
+    margin: 32px auto;
+    padding: 0 20px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 18px;
+  }
+  .tool-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 22px;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .tool-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.08);
+  }
+  .tool-card h2 { margin: 0 0 8px; font-size: 1.15rem; color: var(--navy); }
+  .tool-card p { margin: 0; color: var(--muted); font-size: 0.9rem; }
+  .tool-card.disabled { opacity: 0.5; cursor: default; }
+  .tool-card.disabled:hover { transform: none; box-shadow: none; }
+  .tag {
+    display: inline-block;
+    margin-top: 10px;
+    font-size: 0.75rem;
+    color: var(--gold-dark);
+    font-weight: 600;
+  }
+</style>
+</head>
+<body>
+
+<div class="hub-header">
+  <h1>Tools</h1>
+  <p>A growing collection of calculators &amp; document tools</p>
+</div>
+
+<div class="hub-grid">
+  <a class="tool-card" href="tools/tax-calculator/index.html">
+    <h2>Income Tax Calculator</h2>
+    <p>FY 2025-26 &amp; FY 2026-27 — Old vs New Regime, Scenario Builder, Advance Tax, Interest 234B/234C</p>
+    <span class="tag">Available</span>
+  </a>
+
+  <div class="tool-card disabled">
+    <h2>GST Calculator</h2>
+    <p>Coming soon</p>
+    <span class="tag">Planned</span>
+  </div>
+
+  <div class="tool-card disabled">
+    <h2>Agreement Maker</h2>
+    <p>Coming soon</p>
+    <span class="tag">Planned</span>
+  </div>
+</div>
+
+</body>
+</html>
