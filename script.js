@@ -96,8 +96,47 @@ const UNEXPLAINED_RATE = 0.60;
 function num(id) {
   const el = document.getElementById(id);
   if (!el) return 0;
-  const v = parseFloat(el.value);
+  // Money fields are formatted with Indian comma grouping as the user
+  // types (e.g. "25,00,000") — strip the commas before parsing.
+  const v = parseFloat(String(el.value).replace(/,/g, ""));
   return isNaN(v) ? 0 : v;
+}
+
+// ---------------------------------------------------------------------------
+// Live Indian-comma formatting for money inputs (e.g. 2500000 -> 25,00,000)
+// ---------------------------------------------------------------------------
+
+function formatIndianDigits(rawDigits) {
+  return rawDigits ? Number(rawDigits).toLocaleString("en-IN") : "";
+}
+
+// Sets a money-input's displayed value from a plain number/string, applying
+// Indian comma formatting. Used whenever a value is set programmatically
+// (sample data, save/load, scenario load) rather than typed.
+function setMoneyInputValue(el, value) {
+  let raw = String(value).replace(/[^0-9-]/g, "");
+  const negative = raw.startsWith("-");
+  raw = raw.replace(/-/g, "");
+  el.value = (negative ? "-" : "") + formatIndianDigits(raw);
+}
+
+function attachMoneyFormatting(el) {
+  el.addEventListener("input", () => {
+    // Preserve the cursor's distance from the end of the string — robust
+    // for the common case of typing/deleting at or near the end, which
+    // covers the vast majority of real edits to these fields.
+    const distanceFromEnd = el.value.length - el.selectionStart;
+
+    let raw = el.value.replace(/[^0-9-]/g, "");
+    const negative = raw.startsWith("-");
+    raw = raw.replace(/-/g, "").replace(/^0+(?=\d)/, "");
+
+    const formatted = (negative ? "-" : "") + formatIndianDigits(raw);
+    el.value = formatted;
+
+    const newPos = Math.max(formatted.length - distanceFromEnd, 0);
+    el.setSelectionRange(newPos, newPos);
+  });
 }
 
 function inr(n) {
@@ -519,11 +558,11 @@ function regimeCardHtml(result, label) {
       <div class="row"><span>Deductions</span><span>-${inr(r.deductions)}</span></div>
       <div class="row"><span>Taxable Income (slab)</span><span>${inr(r.normalTaxableIncome)}</span></div>
       <div class="row"><span>Special rate income</span><span>${inr(r.specialIncome)}</span></div>
-      <div class="row"><span>Tax on slab income</span><span>${inr(r.slabTaxAmount)}</span></div>
+      <div class="row"><span>Tax on slab income <span class="info-i" title="${r.regime === "new" ? "Computed per the slab rates u/s 115BAC (New Regime)." : "Computed per the First Schedule slab rates (Old Regime)."}">ⓘ</span></span><span>${inr(r.slabTaxAmount)}</span></div>
       <div class="row"><span>Rebate u/s 87A</span><span>-${inr(r.rebate)}</span></div>
-      <div class="row"><span>Tax on special rate income</span><span>${inr(r.specialTax)}</span></div>
-      <div class="row"><span>Surcharge (${(r.surchargeRate*100).toFixed(0)}%)</span><span>${inr(r.surcharge)}</span></div>
-      <div class="row"><span>Health &amp; Education Cess (4%)</span><span>${inr(r.cess)}</span></div>
+      <div class="row"><span>Tax on special rate income <span class="info-i" title="Tax on capital gains (Sec 111A/112/112A) and any lottery/gaming/VDA/115BBE income, at their respective special rates.">ⓘ</span></span><span>${inr(r.specialTax)}</span></div>
+      <div class="row"><span>Surcharge (${(r.surchargeRate*100).toFixed(0)}%) <span class="info-i" title="Surcharge per the Finance Act rate schedule (10%/15%/25%/37%), capped at 25% under the New Regime and at 15% on Sec 111A/112/112A capital gains tax.">ⓘ</span></span><span>${inr(r.surcharge)}</span></div>
+      <div class="row"><span>Health &amp; Education Cess (4%) <span class="info-i" title="Health & Education Cess — 4% on (tax + surcharge), levied under the Finance Act each year.">ⓘ</span></span><span>${inr(r.cess)}</span></div>
       <div class="row"><span>Relief u/s 89</span><span>-${inr(r.relief89)}</span></div>
       <div class="row total-row"><span>Total Tax Liability</span><span>${inr(r.totalTax)}</span></div>
       <div class="row"><span>Taxes Already Paid (TDS/TCS/Advance/SAT)</span><span>-${inr(r.prepaidTaxes)}</span></div>
@@ -624,6 +663,7 @@ document.querySelectorAll(".tab-btn").forEach(btn => {
     document.querySelectorAll(".tab-panel").forEach(p => p.classList.add("hidden"));
     btn.classList.add("active");
     document.getElementById("tab-" + btn.dataset.tab).classList.remove("hidden");
+    if (btn.dataset.tab === "scenarios") renderScenarioBuilder();
   });
 });
 
@@ -654,14 +694,19 @@ const SAMPLE_DATA = {
 function applySampleData() {
   Object.entries(SAMPLE_DATA).forEach(([id, val]) => {
     const el = document.getElementById(id);
-    if (el) el.value = val;
+    if (!el) return;
+    if (el.classList.contains("money-input")) setMoneyInputValue(el, val);
+    else el.value = val;
   });
 }
 
 document.getElementById("calcBtn").addEventListener("click", render);
 
 document.getElementById("resetBtn").addEventListener("click", () => {
-  document.querySelectorAll('#tab-calculator input[type="number"]').forEach(el => el.value = 0);
+  document.querySelectorAll('#tab-calculator input[type="number"], #tab-calculator .money-input').forEach(el => {
+    if (el.classList.contains("money-input")) setMoneyInputValue(el, 0);
+    else el.value = 0;
+  });
   document.getElementById("coOwnerShare").value = 100;
   document.getElementById("results").innerHTML = "";
   document.getElementById("sumOld").textContent = "₹0";
@@ -696,7 +741,9 @@ document.getElementById("loadSavedBtn").addEventListener("click", () => {
   const saved = JSON.parse(raw);
   Object.entries(saved.inputs).forEach(([id, val]) => {
     const el = document.getElementById(id);
-    if (el && el.type === "number") el.value = val;
+    if (!el) return;
+    if (el.classList.contains("money-input")) setMoneyInputValue(el, val);
+    else if (el.type === "number") el.value = val;
   });
   if (saved.fy) document.getElementById("fy").value = saved.fy;
   if (saved.age) document.getElementById("age").value = saved.age;
@@ -1037,9 +1084,327 @@ function runValidationTests() {
 document.getElementById("runTestsBtn").addEventListener("click", runValidationTests);
 
 // ---------------------------------------------------------------------------
+// Scenario Builder
+//
+// Self-contained module: it only reads the calculator's current input/
+// control values and feeds them through the existing computeRegime()
+// engine — no tax-calculation logic is duplicated here. State lives in
+// localStorage so scenarios persist across page reloads.
+// ---------------------------------------------------------------------------
+
+const SCENARIO_STORAGE_KEY = "taxCalcScenarios_v1";
+const MAX_SCENARIOS = 4;
+
+function getScenarios() {
+  try {
+    const raw = localStorage.getItem(SCENARIO_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function setScenarios(scenarios) {
+  localStorage.setItem(SCENARIO_STORAGE_KEY, JSON.stringify(scenarios));
+}
+
+function newScenarioId() {
+  return "sc_" + Date.now() + "_" + Math.random().toString(36).slice(2, 8);
+}
+
+function escapeHtml(str) {
+  return String(str).replace(/[&<>"']/g, c => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+  }[c]));
+}
+
+// Captures a complete, reusable snapshot of the calculator's current state:
+// every input field, the FY/age/regime/city controls, and both regimes'
+// computed results (so the comparison table never has to recompute or
+// guess — it just reads the snapshot).
+function captureScenarioSnapshot(name) {
+  const fy = document.getElementById("fy").value;
+  const age = document.getElementById("age").value;
+  const regimeToggle = document.getElementById("regimeToggle").value;
+  const inputs = readInputs();
+  return {
+    id: newScenarioId(),
+    name,
+    createdAt: Date.now(),
+    fy,
+    age,
+    regimeToggle,
+    inputs,
+    oldResult: computeRegime("old", fy, age, inputs),
+    newResult: computeRegime("new", fy, age, inputs),
+  };
+}
+
+// Picks which regime's result represents "the" outcome for a scenario:
+// whichever the user had selected at save time, or the cheaper of the two
+// if they had "Compare Both" selected.
+function effectiveResultFor(scenario) {
+  if (scenario.regimeToggle === "old") return { regime: "old", result: scenario.oldResult };
+  if (scenario.regimeToggle === "new") return { regime: "new", result: scenario.newResult };
+  return scenario.newResult.totalTax <= scenario.oldResult.totalTax
+    ? { regime: "new", result: scenario.newResult }
+    : { regime: "old", result: scenario.oldResult };
+}
+
+function deriveIncomeType(inputs) {
+  const parts = [];
+  if (inputs.grossSalary || inputs.basicDA || inputs.hraReceived || inputs.perquisites || inputs.daTerms) parts.push("Salary");
+  if (inputs.presumptive44ADA > 0) parts.push("Professional");
+  if (inputs.netProfit || inputs.presumptive44AD || inputs.presumptive44AE) parts.push("Business");
+  if (inputs.letOutRent || inputs.selfOccupiedInterest) parts.push("House Property");
+  if (inputs.stcgSlab || inputs.stcg111A || inputs.ltcg112A || inputs.ltcg112) parts.push("Capital Gains");
+  if (inputs.savingsInterest || inputs.fdInterest || inputs.dividendIncome || inputs.familyPension
+    || inputs.otherIncomeSlab || inputs.lottery115BB || inputs.onlineGaming115BBJ
+    || inputs.vda115BBH || inputs.unexplained115BBE) parts.push("Other Sources");
+  return parts.length ? parts.join(" + ") : "No Income Entered";
+}
+
+// Derives every metric the comparison table/cards need from a scenario's
+// stored snapshot. Pure read of already-computed results — no recomputation
+// of tax, so future engine changes only apply to newly-saved scenarios
+// (old snapshots stay an accurate record of what was true when saved).
+function computeScenarioMetrics(scenario) {
+  const { regime, result: r } = effectiveResultFor(scenario);
+  const inputs = scenario.inputs;
+
+  const grossIncome = r.gti + r.specialIncome;
+  const capitalGains = inputs.stcgSlab + inputs.stcg111A + inputs.ltcg112A + inputs.ltcg112;
+  const otherIncome = inputs.savingsInterest + inputs.fdInterest + inputs.dividendIncome + inputs.familyPension
+    + inputs.otherIncomeSlab + inputs.lottery115BB + inputs.onlineGaming115BBJ
+    + inputs.vda115BBH + inputs.unexplained115BBE;
+  const professionalIncome = inputs.presumptive44ADA;
+  const businessIncome = r.businessIncome - professionalIncome;
+  const effectiveRate = grossIncome > 0 ? (r.totalTax / grossIncome) * 100 : 0;
+  const netIncomeAfterTax = grossIncome - r.totalTax;
+
+  return {
+    regime,
+    grossIncome,
+    salaryIncome: r.salaryTaxable,
+    professionalIncome,
+    businessIncome,
+    houseProperty: r.houseProperty,
+    capitalGains,
+    otherIncome,
+    totalDeductions: r.deductions,
+    taxableIncome: r.totalTaxableIncome,
+    incomeTax: r.taxBeforeRelief,
+    surcharge: r.surcharge,
+    cess: r.cess,
+    totalTax: r.totalTax,
+    effectiveRate,
+    netIncomeAfterTax,
+  };
+}
+
+function loadScenarioIntoCalculator(scenario) {
+  Object.entries(scenario.inputs).forEach(([key, val]) => {
+    const el = document.getElementById(key);
+    if (!el) return;
+    if (el.classList.contains("money-input")) setMoneyInputValue(el, val);
+    else el.value = val;
+  });
+  document.getElementById("fy").value = scenario.fy;
+  document.getElementById("age").value = scenario.age;
+  document.getElementById("regimeToggle").value = scenario.regimeToggle;
+
+  document.querySelector('.tab-btn[data-tab="calculator"]').click();
+  render();
+}
+
+function toggleScenarioDetail(scenario) {
+  const el = document.getElementById("detail-" + scenario.id);
+  if (!el) return;
+  if (!el.classList.contains("hidden")) {
+    el.classList.add("hidden");
+    el.innerHTML = "";
+    return;
+  }
+  const { regime, result: r } = effectiveResultFor(scenario);
+  el.classList.remove("hidden");
+  el.innerHTML = `
+    <div class="row"><span>Financial Year</span><span>${scenario.fy}</span></div>
+    <div class="row"><span>Regime used</span><span>${regime === "new" ? "New Regime" : "Old Regime"}</span></div>
+    <div class="row"><span>Gross Total Income</span><span>${inr(r.gti + r.specialIncome)}</span></div>
+    <div class="row"><span>Deductions</span><span>${inr(r.deductions)}</span></div>
+    <div class="row"><span>Taxable Income</span><span>${inr(r.totalTaxableIncome)}</span></div>
+    <div class="row"><span>Tax before Surcharge/Cess</span><span>${inr(r.taxBeforeRelief)}</span></div>
+    <div class="row"><span>Surcharge</span><span>${inr(r.surcharge)}</span></div>
+    <div class="row"><span>Health &amp; Education Cess</span><span>${inr(r.cess)}</span></div>
+    <div class="row total-row"><span>Total Tax Payable</span><span>${inr(r.totalTax)}</span></div>
+  `;
+}
+
+function handleScenarioAction(action, id) {
+  const scenarios = getScenarios();
+  const idx = scenarios.findIndex(s => s.id === id);
+  if (idx === -1) return;
+  const scenario = scenarios[idx];
+
+  if (action === "delete") {
+    if (confirm(`Delete scenario "${scenario.name}"? This cannot be undone.`)) {
+      scenarios.splice(idx, 1);
+      setScenarios(scenarios);
+      renderScenarioBuilder();
+    }
+  } else if (action === "rename") {
+    const newName = prompt("Rename scenario:", scenario.name);
+    if (newName && newName.trim()) {
+      scenario.name = newName.trim();
+      setScenarios(scenarios);
+      renderScenarioBuilder();
+    }
+  } else if (action === "duplicate") {
+    if (scenarios.length >= MAX_SCENARIOS) {
+      alert(`You already have ${MAX_SCENARIOS} saved scenarios — the maximum allowed. Please delete an existing scenario before duplicating.`);
+      return;
+    }
+    const copy = JSON.parse(JSON.stringify(scenario));
+    copy.id = newScenarioId();
+    copy.name = scenario.name + " (Copy)";
+    copy.createdAt = Date.now();
+    scenarios.push(copy);
+    setScenarios(scenarios);
+    renderScenarioBuilder();
+  } else if (action === "load" || action === "edit") {
+    loadScenarioIntoCalculator(scenario);
+  } else if (action === "view") {
+    toggleScenarioDetail(scenario);
+  }
+}
+
+function buildComparisonTableHtml(scenarios, metricsById, bestTaxId, bestNetId, bestRateId) {
+  const metricRows = [
+    ["Income Type", s => escapeHtml(deriveIncomeType(s.inputs))],
+    ["Regime Used", s => metricsById[s.id].regime === "new" ? "New" : "Old"],
+    ["Gross Income", s => inr(metricsById[s.id].grossIncome)],
+    ["Salary Income", s => inr(metricsById[s.id].salaryIncome)],
+    ["Professional Income", s => inr(metricsById[s.id].professionalIncome)],
+    ["Business Income", s => inr(metricsById[s.id].businessIncome)],
+    ["House Property Income", s => inr(metricsById[s.id].houseProperty)],
+    ["Capital Gains", s => inr(metricsById[s.id].capitalGains)],
+    ["Other Income", s => inr(metricsById[s.id].otherIncome)],
+    ["Total Deductions", s => inr(metricsById[s.id].totalDeductions)],
+    ["Taxable Income", s => inr(metricsById[s.id].taxableIncome)],
+    ["Income Tax", s => inr(metricsById[s.id].incomeTax)],
+    ["Surcharge", s => inr(metricsById[s.id].surcharge)],
+    ["Health & Education Cess", s => inr(metricsById[s.id].cess)],
+  ];
+
+  const headerCells = scenarios.map(s => `<th>${escapeHtml(s.name)}</th>`).join("");
+  const bodyRows = metricRows.map(([label, fn]) => {
+    const cells = scenarios.map(s => `<td>${fn(s)}</td>`).join("");
+    return `<tr><td>${label}</td>${cells}</tr>`;
+  }).join("");
+
+  const taxRow = `<tr class="metric-row"><td><strong>Total Tax Payable</strong></td>${
+    scenarios.map(s => `<td class="${s.id === bestTaxId ? "winner-cell" : ""}">${inr(metricsById[s.id].totalTax)}</td>`).join("")
+  }</tr>`;
+  const rateRow = `<tr class="metric-row"><td><strong>Effective Tax Rate</strong></td>${
+    scenarios.map(s => `<td class="${s.id === bestRateId ? "winner-cell" : ""}">${metricsById[s.id].effectiveRate.toFixed(2)}%</td>`).join("")
+  }</tr>`;
+  const netRow = `<tr class="metric-row"><td><strong>Net Income After Tax</strong></td>${
+    scenarios.map(s => `<td class="${s.id === bestNetId ? "winner-cell" : ""}">${inr(metricsById[s.id].netIncomeAfterTax)}</td>`).join("")
+  }</tr>`;
+
+  return `
+    <div class="compare-table-wrap">
+      <table class="compare-table">
+        <thead><tr><th>Metric</th>${headerCells}</tr></thead>
+        <tbody>${bodyRows}${taxRow}${rateRow}${netRow}</tbody>
+      </table>
+    </div>
+  `;
+}
+
+function renderScenarioBuilder() {
+  const scenarios = getScenarios();
+  const cardsEl = document.getElementById("scenarioCards");
+  const compareEl = document.getElementById("scenarioComparison");
+  if (!cardsEl || !compareEl) return;
+
+  if (scenarios.length === 0) {
+    cardsEl.innerHTML = `<div class="scenario-card-empty">No scenarios saved yet. Go to the Tax Calculator tab, fill in an income structure, click Calculate Tax, then "+ Add to Scenario".</div>`;
+    compareEl.innerHTML = "";
+    return;
+  }
+
+  const metricsById = {};
+  scenarios.forEach(s => { metricsById[s.id] = computeScenarioMetrics(s); });
+
+  let bestTaxId = scenarios[0].id, bestNetId = scenarios[0].id, bestRateId = scenarios[0].id;
+  scenarios.forEach(s => {
+    const m = metricsById[s.id];
+    if (m.totalTax < metricsById[bestTaxId].totalTax) bestTaxId = s.id;
+    if (m.netIncomeAfterTax > metricsById[bestNetId].netIncomeAfterTax) bestNetId = s.id;
+    if (m.effectiveRate < metricsById[bestRateId].effectiveRate) bestRateId = s.id;
+  });
+
+  cardsEl.innerHTML = scenarios.map(s => {
+    const m = metricsById[s.id];
+    const badges = [];
+    if (s.id === bestTaxId) badges.push('<span class="scenario-badge best-tax">Lowest Tax</span>');
+    if (s.id === bestNetId) badges.push('<span class="scenario-badge best-net">Highest Net Income</span>');
+    if (s.id === bestRateId) badges.push('<span class="scenario-badge best-rate">Lowest Effective Rate</span>');
+    return `
+      <div class="scenario-card" data-id="${s.id}">
+        <div>${badges.join("")}</div>
+        <div class="scenario-card-name">${escapeHtml(s.name)}</div>
+        <div class="scenario-card-type">${escapeHtml(deriveIncomeType(s.inputs))} — ${m.regime === "new" ? "New Regime" : "Old Regime"}</div>
+        <div class="scenario-card-tax">${inr(m.totalTax)}</div>
+        <div class="scenario-card-rate">Effective rate: ${m.effectiveRate.toFixed(2)}% &nbsp;|&nbsp; Net income: ${inr(m.netIncomeAfterTax)}</div>
+        <div class="scenario-card-actions">
+          <button data-action="view" data-id="${s.id}">View</button>
+          <button data-action="load" data-id="${s.id}">Load</button>
+          <button data-action="edit" data-id="${s.id}">Edit</button>
+          <button data-action="duplicate" data-id="${s.id}">Duplicate</button>
+          <button data-action="rename" data-id="${s.id}">Rename</button>
+          <button data-action="delete" data-id="${s.id}" class="danger">Delete</button>
+        </div>
+        <div class="scenario-card-detail hidden" id="detail-${s.id}"></div>
+      </div>
+    `;
+  }).join("") + (scenarios.length >= MAX_SCENARIOS
+    ? `<div class="scenario-card-empty">Maximum of ${MAX_SCENARIOS} scenarios reached. Delete one to add another.</div>`
+    : "");
+
+  cardsEl.querySelectorAll("button[data-action]").forEach(btn => {
+    btn.addEventListener("click", () => handleScenarioAction(btn.dataset.action, btn.dataset.id));
+  });
+
+  compareEl.innerHTML = buildComparisonTableHtml(scenarios, metricsById, bestTaxId, bestNetId, bestRateId);
+}
+
+document.getElementById("addToScenarioBtn").addEventListener("click", () => {
+  const scenarios = getScenarios();
+  if (scenarios.length >= MAX_SCENARIOS) {
+    alert(`You already have ${MAX_SCENARIOS} saved scenarios — the maximum allowed. Please delete an existing scenario from the Scenario Builder tab before adding another.`);
+    return;
+  }
+  render(); // ensure the snapshot reflects the latest inputs on screen
+  const defaultName = "Scenario " + (scenarios.length + 1);
+  const name = prompt("Name this scenario:", defaultName);
+  if (name === null) return; // cancelled
+  const snapshot = captureScenarioSnapshot(name.trim() || defaultName);
+  scenarios.push(snapshot);
+  setScenarios(scenarios);
+  renderScenarioBuilder();
+  alert(`Scenario "${snapshot.name}" saved. View it in the Scenario Builder tab.`);
+});
+
+// ---------------------------------------------------------------------------
 // Init
 // ---------------------------------------------------------------------------
+
+document.querySelectorAll(".money-input").forEach(attachMoneyFormatting);
+document.querySelectorAll(".money-input").forEach(el => setMoneyInputValue(el, el.value));
 
 render();
 renderSlabsTab();
 renderTableTab();
+renderScenarioBuilder();
