@@ -1,5 +1,5 @@
 (function () {
-  const TEMPLATE_URL = "/tools/sow-generator/template/SoW-Template.docx";
+  const TEMPLATE_URL = "template/SoW-Template.docx";
 
   const FIELDS = [
     { id: "sowNumber", key: "sow_number", label: "SoW Number", required: true },
