@@ -3,522 +3,81 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Income Tax Calculator — FY 2025-26 & FY 2026-27 | Old vs New Regime</title>
-<link rel="stylesheet" href="style.css" />
+<title>Tools — Tax, GST & More</title>
+<link rel="stylesheet" href="shared/theme.css" />
+<style>
+  .hub-header {
+    background: var(--navy);
+    color: #fff;
+    padding: 28px 24px;
+    text-align: center;
+  }
+  .hub-header h1 { margin: 0 0 6px; font-size: 1.6rem; }
+  .hub-header p { margin: 0; color: #cfd3dd; font-size: 0.95rem; }
+  .hub-grid {
+    max-width: 960px;
+    margin: 32px auto;
+    padding: 0 20px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 18px;
+  }
+  .tool-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 22px;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .tool-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.08);
+  }
+  .tool-card h2 { margin: 0 0 8px; font-size: 1.15rem; color: var(--navy); }
+  .tool-card p { margin: 0; color: var(--muted); font-size: 0.9rem; }
+  .tool-card.disabled { opacity: 0.5; cursor: default; }
+  .tool-card.disabled:hover { transform: none; box-shadow: none; }
+  .tag {
+    display: inline-block;
+    margin-top: 10px;
+    font-size: 0.75rem;
+    color: var(--gold-dark);
+    font-weight: 600;
+  }
+</style>
 </head>
 <body>
 
-<nav class="tabnav">
-  <button class="tab-btn active" data-tab="calculator">Tax Calculator</button>
-  <button class="tab-btn" data-tab="scenarios">Scenario Builder</button>
-  <button class="tab-btn" data-tab="advance">Advance Tax</button>
-  <button class="tab-btn" data-tab="interest">Interest 234B / 234C</button>
-  <button class="tab-btn" data-tab="slabs">Tax Slabs</button>
-  <button class="tab-btn" data-tab="table">Tax Table</button>
-  <button class="tab-btn" data-tab="duedates">ITR Due Dates</button>
-  <button class="tab-btn" data-tab="howto">How to Use</button>
-  <button class="tab-btn" data-tab="tests">Validation Tests</button>
-</nav>
-
-<div class="wrap">
-
-<!-- ============================== TAX CALCULATOR ============================== -->
-<section class="tab-panel" id="tab-calculator">
-
-  <div class="card controls controls-5">
-    <div class="field">
-      <label for="fy">Financial Year</label>
-      <select id="fy">
-        <option value="2025-26">FY 2025-26 (AY 2026-27)</option>
-        <option value="2026-27">FY 2026-27 (AY 2027-28)</option>
-      </select>
-    </div>
-    <div class="field">
-      <label for="age">Taxpayer Category</label>
-      <select id="age">
-        <option value="below60">Individual (below 60)</option>
-        <option value="senior">Senior Citizen (60–79)</option>
-        <option value="supersenior">Super Senior (80+)</option>
-        <option value="nonresident">Non-Resident</option>
-        <option value="huf">HUF</option>
-        <option value="aopboi">AOP / BOI</option>
-        <option value="ajp">Artificial Juridical Person</option>
-      </select>
-    </div>
-    <div class="field">
-      <label for="taxpayerType">Taxpayer Type</label>
-      <select id="taxpayerType">
-        <option value="salaried">Salaried</option>
-        <option value="pensioner">Pensioner</option>
-        <option value="business">Business / Professional</option>
-        <option value="other">Other</option>
-      </select>
-    </div>
-    <div class="field">
-      <label for="regimeToggle">Regime</label>
-      <select id="regimeToggle">
-        <option value="both">Compare Both</option>
-        <option value="new">New Regime</option>
-        <option value="old">Old Regime</option>
-      </select>
-    </div>
-    <div class="field">
-      <label for="metroCity">City (for HRA)</label>
-      <select id="metroCity">
-        <option value="metro">Metro (50% HRA)</option>
-        <option value="nonmetro">Non-Metro (40% HRA)</option>
-      </select>
-    </div>
-  </div>
-
-  <div class="calc-layout">
-    <div class="calc-main">
-
-      <!-- HEAD 1: SALARY -->
-      <details class="card accordion" open>
-        <summary><span>Income from Salary</span><span class="head-tag">Head 1</span></summary>
-        <p class="section-note">Standard deduction is applied automatically (Old ₹50,000 / New ₹75,000). HRA exemption u/s 10(13A) is allowed only under the Old Regime.</p>
-        <div class="two-col">
-          <div class="field">
-            <label for="grossSalary">Gross Salary <span class="info-i" title="Bonus / Special Allowance / other components not itemised below">ⓘ</span></label>
-            <input type="text" inputmode="numeric" autocomplete="off" class="money-input" id="grossSalary" value="0" />
-          </div>
-          <div class="field">
-            <label for="basicDA">Basic + DA <span class="info-i" title="Forming part of salary; used as the base for HRA exemption">ⓘ</span></label>
-            <input type="text" inputmode="numeric" autocomplete="off" class="money-input" id="basicDA" value="0" />
-          </div>
-          <div class="field">
-            <label for="daTerms">Dearness Allowance <span class="hint">(in terms)</span></label>
-            <input type="text" inputmode="numeric" autocomplete="off" class="money-input" id="daTerms" value="0" />
-          </div>
-          <div class="field">
-            <label for="hraReceived">HRA Received <span class="info-i" title="Used with Basic+DA, Rent Paid, and City to compute the HRA exemption u/s 10(13A) — Old Regime only.">ⓘ</span></label>
-            <input type="text" inputmode="numeric" autocomplete="off" class="money-input" id="hraReceived" value="0" />
-          </div>
-          <div class="field">
-            <label for="rentPaid">Rent Paid <span class="hint">(annual)</span></label>
-            <input type="text" inputmode="numeric" autocomplete="off" class="money-input" id="rentPaid" value="0" />
-          </div>
-          <div class="field">
-            <label for="professionalTax">Professional Tax <span class="info-i" title="u/s 16(iii) — deductible only under the Old Regime">ⓘ</span></label>
-            <input type="text" inputmode="numeric" autocomplete="off" class="money-input" id="professionalTax" value="0" />
-          </div>
-          <div class="field">
-            <label for="perquisites">Perquisites <span class="hint">(taxable)</span></label>
-            <input type="text" inputmode="numeric" autocomplete="off" class="money-input" id="perquisites" value="0" />
-          </div>
-          <div class="field">
-            <label for="arrears">Arrears <span class="hint">(89 relief claimed separately)</span></label>
-            <input type="text" inputmode="numeric" autocomplete="off" class="money-input" id="arrears" value="0" />
-          </div>
-          <div class="field full">
-            <label for="exemptAllowances">Exempt Allowances <span class="info-i" title="u/s 10 — e.g. LTA, conveyance; allowed in both regimes">ⓘ</span></label>
-            <input type="text" inputmode="numeric" autocomplete="off" class="money-input" id="exemptAllowances" value="0" />
-          </div>
-        </div>
-      </details>
-
-      <!-- HEAD 2: HOUSE PROPERTY -->
-      <details class="card accordion">
-        <summary><span>Income from House Property</span><span class="head-tag">Head 2</span></summary>
-        <p class="section-note">Self-occupied interest u/s 24(b) is capped at ₹2,00,000 and allowed under the Old Regime only. Loss set-off against other heads is restricted to ₹2,00,000.</p>
-        <div class="field">
-          <label for="selfOccupiedInterest">Self-Occupied Property — Interest on Housing Loan u/s 24(b)</label>
-          <input type="text" inputmode="numeric" autocomplete="off" class="money-input" id="selfOccupiedInterest" value="0" />
-        </div>
-        <div class="two-col">
-          <div class="field">
-            <label for="letOutRent">Let-Out — Gross Annual Rent</label>
-            <input type="text" inputmode="numeric" autocomplete="off" class="money-input" id="letOutRent" value="0" />
-          </div>
-          <div class="field">
-            <label for="municipalTax">Municipal Taxes Paid</label>
-            <input type="text" inputmode="numeric" autocomplete="off" class="money-input" id="municipalTax" value="0" />
-          </div>
-          <div class="field">
-            <label for="letOutInterest">Let-Out — Interest on Loan <span class="info-i" title="Sec 24(b): interest on a loan for a let-out property — no upper limit, subject to the overall ₹2,00,000 loss set-off cap.">ⓘ</span></label>
-            <input type="text" inputmode="numeric" autocomplete="off" class="money-input" id="letOutInterest" value="0" />
-          </div>
-          <div class="field">
-            <label for="preConstructionInterest">Pre-construction Interest <span class="hint">(1/5th)</span> <span class="info-i" title="Sec 24(b) proviso: pre-construction period interest, claimable in 5 equal annual instalments starting from the year of completion.">ⓘ</span></label>
-            <input type="text" inputmode="numeric" autocomplete="off" class="money-input" id="preConstructionInterest" value="0" />
-          </div>
-          <div class="field">
-            <label for="coOwnerShare">Co-owner Share (%) <span class="info-i" title="Your share of the let-out property">ⓘ</span></label>
-            <input type="number" id="coOwnerShare" min="0" max="100" value="100" />
-          </div>
-        </div>
-      </details>
-
-      <!-- HEAD 3: BUSINESS / PROFESSION -->
-      <details class="card accordion">
-        <summary><span>Profits &amp; Gains of Business / Profession</span><span class="head-tag">Head 3</span></summary>
-        <p class="section-note">Enter either the regular computation figures or presumptive income (44AD / 44ADA / 44AE). Presumptive income, where entered, is taken as the business income.</p>
-        <div class="two-col">
-          <div class="field">
-            <label for="netProfit">Net Profit as per P&amp;L</label>
-            <input type="text" inputmode="numeric" autocomplete="off" class="money-input" id="netProfit" value="0" />
-          </div>
-          <div class="field">
-            <label for="addDisallowances">Add: Disallowances</label>
-            <input type="text" inputmode="numeric" autocomplete="off" class="money-input" id="addDisallowances" value="0" />
-          </div>
-          <div class="field">
-            <label for="addOtherAdditions">Add: Other Additions</label>
-            <input type="text" inputmode="numeric" autocomplete="off" class="money-input" id="addOtherAdditions" value="0" />
-          </div>
-          <div class="field">
-            <label for="lessAllowableDeductions">Less: Allowable Deductions</label>
-            <input type="text" inputmode="numeric" autocomplete="off" class="money-input" id="lessAllowableDeductions" value="0" />
-          </div>
-          <div class="field">
-            <label for="depreciationAdjustment">Depreciation Adjustment u/s 32</label>
-            <input type="text" inputmode="numeric" autocomplete="off" class="money-input" id="depreciationAdjustment" value="0" />
-          </div>
-          <div class="field">
-            <label for="presumptive44AD">Presumptive u/s 44AD</label>
-            <input type="text" inputmode="numeric" autocomplete="off" class="money-input" id="presumptive44AD" value="0" />
-          </div>
-          <div class="field">
-            <label for="presumptive44ADA">Presumptive u/s 44ADA</label>
-            <input type="text" inputmode="numeric" autocomplete="off" class="money-input" id="presumptive44ADA" value="0" />
-          </div>
-          <div class="field">
-            <label for="presumptive44AE">Presumptive u/s 44AE</label>
-            <input type="text" inputmode="numeric" autocomplete="off" class="money-input" id="presumptive44AE" value="0" />
-          </div>
-          <div class="field">
-            <label for="broughtForwardBusinessLoss">Brought-Forward Business Loss</label>
-            <input type="text" inputmode="numeric" autocomplete="off" class="money-input" id="broughtForwardBusinessLoss" value="0" />
-          </div>
-          <div class="field">
-            <label for="currentYearBusinessLoss">Current-Year Business Loss</label>
-            <input type="text" inputmode="numeric" autocomplete="off" class="money-input" id="currentYearBusinessLoss" value="0" />
-          </div>
-        </div>
-      </details>
-
-      <!-- HEAD 4: CAPITAL GAINS -->
-      <details class="card accordion">
-        <summary><span>Capital Gains</span><span class="head-tag">Head 4</span></summary>
-        <p class="section-note">Special-rate gains are taxed separately: STCG u/s 111A @20%, LTCG u/s 112A @12.5% (exemption ₹1,25,000), LTCG u/s 112 @12.5%. For residents, unexhausted basic exemption is set off against special-rate income.</p>
-        <div class="two-col">
-          <div class="field">
-            <label for="stcgSlab">STCG Taxable at Slab Rates <span class="info-i" title="Short-term capital gains not covered by a special rate (e.g. unlisted shares, most debt mutual funds) — taxed at normal slab rates.">ⓘ</span></label>
-            <input type="text" inputmode="numeric" autocomplete="off" class="money-input" id="stcgSlab" value="0" />
-          </div>
-          <div class="field">
-            <label for="stcg111A">STCG u/s 111A <span class="hint">(equity, 20%)</span> <span class="info-i" title="Sec 111A: short-term gains on listed equity shares/equity mutual fund units (STT paid) — flat 20%.">ⓘ</span></label>
-            <input type="text" inputmode="numeric" autocomplete="off" class="money-input" id="stcg111A" value="0" />
-          </div>
-          <div class="field">
-            <label for="ltcg112A">LTCG u/s 112A <span class="hint">(equity, 12.5%)</span> <span class="info-i" title="Sec 112A: long-term gains on listed equity shares/equity mutual fund units — 12.5%, with a ₹1,25,000 annual exemption.">ⓘ</span></label>
-            <input type="text" inputmode="numeric" autocomplete="off" class="money-input" id="ltcg112A" value="0" />
-          </div>
-          <div class="field">
-            <label for="ltcg112">LTCG u/s 112 <span class="hint">(others, 12.5%)</span> <span class="info-i" title="Sec 112: long-term capital gains on other assets (property, debt instruments, unlisted shares, etc.) — 12.5%.">ⓘ</span></label>
-            <input type="text" inputmode="numeric" autocomplete="off" class="money-input" id="ltcg112" value="0" />
-          </div>
-        </div>
-      </details>
-
-      <!-- HEAD 5: OTHER SOURCES -->
-      <details class="card accordion">
-        <summary><span>Income from Other Sources</span><span class="head-tag">Head 5</span></summary>
-        <p class="section-note">Lottery / online gaming / VDA / unexplained income are taxed at special rates (30% / 30% / 30% / 60% respectively) and are not eligible for rebate u/s 87A.</p>
-        <div class="two-col">
-          <div class="field">
-            <label for="savingsInterest">Savings Bank Interest</label>
-            <input type="text" inputmode="numeric" autocomplete="off" class="money-input" id="savingsInterest" value="0" />
-          </div>
-          <div class="field">
-            <label for="fdInterest">Fixed Deposit / Other Interest</label>
-            <input type="text" inputmode="numeric" autocomplete="off" class="money-input" id="fdInterest" value="0" />
-          </div>
-          <div class="field">
-            <label for="dividendIncome">Dividend Income</label>
-            <input type="text" inputmode="numeric" autocomplete="off" class="money-input" id="dividendIncome" value="0" />
-          </div>
-          <div class="field">
-            <label for="familyPension">Family Pension <span class="info-i" title="Deduction: 1/3rd or ₹15,000 (Old) / ₹25,000 (New), whichever lower">ⓘ</span></label>
-            <input type="text" inputmode="numeric" autocomplete="off" class="money-input" id="familyPension" value="0" />
-          </div>
-          <div class="field">
-            <label for="lottery115BB">Lottery / Winnings <span class="hint">u/s 115BB (30%)</span></label>
-            <input type="text" inputmode="numeric" autocomplete="off" class="money-input" id="lottery115BB" value="0" />
-          </div>
-          <div class="field">
-            <label for="onlineGaming115BBJ">Online Gaming <span class="hint">u/s 115BBJ (30%)</span></label>
-            <input type="text" inputmode="numeric" autocomplete="off" class="money-input" id="onlineGaming115BBJ" value="0" />
-          </div>
-          <div class="field">
-            <label for="vda115BBH">VDA / Crypto <span class="hint">u/s 115BBH (30%)</span></label>
-            <input type="text" inputmode="numeric" autocomplete="off" class="money-input" id="vda115BBH" value="0" />
-          </div>
-          <div class="field">
-            <label for="unexplained115BBE">Unexplained Income <span class="hint">u/s 115BBE (60%)</span></label>
-            <input type="text" inputmode="numeric" autocomplete="off" class="money-input" id="unexplained115BBE" value="0" />
-          </div>
-          <div class="field full">
-            <label for="otherIncomeSlab">Other Income <span class="hint">(taxable at slab)</span></label>
-            <input type="text" inputmode="numeric" autocomplete="off" class="money-input" id="otherIncomeSlab" value="0" />
-          </div>
-        </div>
-      </details>
-
-      <!-- AGRICULTURAL INCOME -->
-      <details class="card accordion">
-        <summary><span>Agricultural Income</span><span class="head-tag partial">Partial Integration</span></summary>
-        <p class="section-note">Net agricultural income above ₹5,000 is aggregated for rate purposes (partial integration) where the taxpayer is an individual/HUF and non-agricultural income exceeds the basic exemption.</p>
-        <div class="field">
-          <label for="agriIncome">Net Agricultural Income <span class="info-i" title="Exempt u/s 10(1); partial integration for rate purposes follows the Finance Act's First Schedule, Part IV rules.">ⓘ</span></label>
-          <input type="text" inputmode="numeric" autocomplete="off" class="money-input" id="agriIncome" value="0" />
-        </div>
-      </details>
-
-      <!-- DEDUCTIONS: OLD REGIME -->
-      <details class="card accordion">
-        <summary><span>Deductions — Chapter VI-A</span><span class="head-tag old">Old Regime</span></summary>
-        <p class="section-note">These deductions are available under the Old Regime. Statutory ceilings (e.g. 80C aggregate ₹1,50,000; 80CCD(1B) ₹50,000) are applied automatically, with a validation note.</p>
-        <div class="two-col">
-          <div class="field"><label for="sec80C">80C <span class="info-i" title="Sec 80C: investments in PPF, ELSS, life insurance premium, EPF, principal repayment of home loan, etc. Combined limit with 80CCC & 80CCD(1): ₹1,50,000.">ⓘ</span></label><input type="text" inputmode="numeric" autocomplete="off" class="money-input" id="sec80C" value="0" /></div>
-          <div class="field"><label for="sec80CCC">80CCC <span class="info-i" title="Sec 80CCC: contribution to LIC/insurer pension/annuity plans. Combined limit with 80C & 80CCD(1): ₹1,50,000.">ⓘ</span></label><input type="text" inputmode="numeric" autocomplete="off" class="money-input" id="sec80CCC" value="0" /></div>
-          <div class="field"><label for="sec80CCD1">80CCD(1) — employee NPS <span class="info-i" title="Sec 80CCD(1): employee's own NPS contribution. Combined limit with 80C & 80CCC: ₹1,50,000.">ⓘ</span></label><input type="text" inputmode="numeric" autocomplete="off" class="money-input" id="sec80CCD1" value="0" /></div>
-          <div class="field"><label for="sec80CCD1B">80CCD(1B) — addl. NPS <span class="info-i" title="Sec 80CCD(1B): additional NPS contribution, over and above the ₹1,50,000 limit under 80CCE. Max ₹50,000.">ⓘ</span></label><input type="text" inputmode="numeric" autocomplete="off" class="money-input" id="sec80CCD1B" value="0" /></div>
-          <div class="field"><label for="sec80CCD2_old">80CCD(2) — employer NPS <span class="info-i" title="Sec 80CCD(2): employer's NPS contribution — deductible in both Old and New Regime, outside the ₹1,50,000 cap.">ⓘ</span></label><input type="text" inputmode="numeric" autocomplete="off" class="money-input" id="sec80CCD2_old" value="0" /></div>
-          <div class="field"><label for="sec80D">80D — Mediclaim <span class="info-i" title="Sec 80D: medical insurance premium for self/family/parents. Max ₹25,000 (₹50,000 if the insured is a senior citizen).">ⓘ</span></label><input type="text" inputmode="numeric" autocomplete="off" class="money-input" id="sec80D" value="0" /></div>
-          <div class="field"><label for="sec80DD">80DD <span class="info-i" title="Sec 80DD: maintenance/medical treatment of a dependant with disability. Fixed deduction ₹75,000 (₹1,25,000 for severe disability), irrespective of actual expense.">ⓘ</span></label><input type="text" inputmode="numeric" autocomplete="off" class="money-input" id="sec80DD" value="0" /></div>
-          <div class="field"><label for="sec80DDB">80DDB <span class="info-i" title="Sec 80DDB: medical treatment of specified diseases. Max ₹40,000 (₹1,00,000 for senior citizens).">ⓘ</span></label><input type="text" inputmode="numeric" autocomplete="off" class="money-input" id="sec80DDB" value="0" /></div>
-          <div class="field"><label for="sec80E">80E — education loan <span class="info-i" title="Sec 80E: interest on a loan for higher education — no upper limit on the amount, allowed for 8 consecutive years.">ⓘ</span></label><input type="text" inputmode="numeric" autocomplete="off" class="money-input" id="sec80E" value="0" /></div>
-          <div class="field"><label for="sec80EE">80EE <span class="info-i" title="Sec 80EE: interest on home loan for first-time buyers (loan sanctioned FY2016-17). Max ₹50,000, over and above Sec 24(b).">ⓘ</span></label><input type="text" inputmode="numeric" autocomplete="off" class="money-input" id="sec80EE" value="0" /></div>
-          <div class="field"><label for="sec80EEA">80EEA <span class="info-i" title="Sec 80EEA: additional interest on home loan for affordable housing (loan sanctioned FY2019-20 to FY2021-22). Max ₹1,50,000.">ⓘ</span></label><input type="text" inputmode="numeric" autocomplete="off" class="money-input" id="sec80EEA" value="0" /></div>
-          <div class="field"><label for="sec80G">80G — donations <span class="info-i" title="Sec 80G: donations to specified charitable funds/institutions — 50% or 100% deduction depending on the fund, some subject to a qualifying-income limit.">ⓘ</span></label><input type="text" inputmode="numeric" autocomplete="off" class="money-input" id="sec80G" value="0" /></div>
-          <div class="field"><label for="sec80GG">80GG — rent (no HRA) <span class="info-i" title="Sec 80GG: rent paid where HRA is not received. Least of ₹5,000/month, 25% of total income, or rent minus 10% of total income.">ⓘ</span></label><input type="text" inputmode="numeric" autocomplete="off" class="money-input" id="sec80GG" value="0" /></div>
-          <div class="field"><label for="sec80GGA">80GGA <span class="info-i" title="Sec 80GGA: donations for scientific research or rural development.">ⓘ</span></label><input type="text" inputmode="numeric" autocomplete="off" class="money-input" id="sec80GGA" value="0" /></div>
-          <div class="field"><label for="sec80GGC">80GGC <span class="info-i" title="Sec 80GGC: contributions to a registered political party or electoral trust.">ⓘ</span></label><input type="text" inputmode="numeric" autocomplete="off" class="money-input" id="sec80GGC" value="0" /></div>
-          <div class="field"><label for="sec80TTA">80TTA — savings interest <span class="info-i" title="Sec 80TTA: interest on a savings bank account, for individuals/HUF below 60. Max ₹10,000.">ⓘ</span></label><input type="text" inputmode="numeric" autocomplete="off" class="money-input" id="sec80TTA" value="0" /></div>
-          <div class="field"><label for="sec80TTB">80TTB — senior interest <span class="info-i" title="Sec 80TTB: interest on all deposits (savings + FD), for resident senior citizens only. Max ₹50,000; replaces 80TTA for them.">ⓘ</span></label><input type="text" inputmode="numeric" autocomplete="off" class="money-input" id="sec80TTB" value="0" /></div>
-          <div class="field"><label for="sec80U">80U — disability <span class="info-i" title="Sec 80U: deduction for a taxpayer with a disability — fixed ₹75,000 (₹1,25,000 for severe disability), irrespective of actual expense.">ⓘ</span></label><input type="text" inputmode="numeric" autocomplete="off" class="money-input" id="sec80U" value="0" /></div>
-          <div class="field full"><label for="otherDeductions">Other Chapter VI-A deductions</label><input type="text" inputmode="numeric" autocomplete="off" class="money-input" id="otherDeductions" value="0" /></div>
-        </div>
-      </details>
-
-      <!-- DEDUCTIONS: NEW REGIME -->
-      <details class="card accordion">
-        <summary><span>Deductions</span><span class="head-tag new">New Regime</span></summary>
-        <p class="section-note">Only a limited set of deductions is permitted under the New Regime u/s 115BAC.</p>
-        <div class="two-col">
-          <div class="field"><label for="sec80CCD2_new">80CCD(2) — employer NPS <span class="info-i" title="Sec 80CCD(2): employer's NPS contribution — one of the few deductions retained under the New Regime u/s 115BAC.">ⓘ</span></label><input type="text" inputmode="numeric" autocomplete="off" class="money-input" id="sec80CCD2_new" value="0" /></div>
-          <div class="field"><label for="sec80CCH2">80CCH(2) — Agniveer <span class="info-i" title="Sec 80CCH(2): contribution to the Agniveer Corpus Fund — fully deductible, available under both regimes.">ⓘ</span></label><input type="text" inputmode="numeric" autocomplete="off" class="money-input" id="sec80CCH2" value="0" /></div>
-          <div class="field"><label for="sec80JJAA">80JJAA — new employment <span class="info-i" title="Sec 80JJAA: deduction for employing new employees — 30% of additional employee cost, claimable for 3 assessment years.">ⓘ</span></label><input type="text" inputmode="numeric" autocomplete="off" class="money-input" id="sec80JJAA" value="0" /></div>
-          <div class="field"><label for="sec80LA3A">80LA(1A) — IFSC unit <span class="info-i" title="Sec 80LA(1A): deduction for income of an IFSC (International Financial Services Centre) unit.">ⓘ</span></label><input type="text" inputmode="numeric" autocomplete="off" class="money-input" id="sec80LA3A" value="0" /></div>
-        </div>
-      </details>
-
-      <!-- TAXES PAID & RELIEFS -->
-      <details class="card accordion">
-        <summary><span>Taxes Paid &amp; Reliefs</span><span class="head-tag prepaid">Pre-paid</span></summary>
-        <p class="section-note">Enter taxes already paid to arrive at the net payable / refundable position.</p>
-        <div class="two-col">
-          <div class="field"><label for="tds">TDS <span class="info-i" title="Tax Deducted at Source, u/s 192–195 (various) — already collected by the payer and deposited with the government.">ⓘ</span></label><input type="text" inputmode="numeric" autocomplete="off" class="money-input" id="tds" value="0" /></div>
-          <div class="field"><label for="tcs">TCS <span class="info-i" title="Tax Collected at Source, u/s 206C — already collected by the seller/collector and deposited with the government.">ⓘ</span></label><input type="text" inputmode="numeric" autocomplete="off" class="money-input" id="tcs" value="0" /></div>
-          <div class="field"><label for="advanceTax">Advance Tax Paid <span class="info-i" title="Advance tax paid in instalments during the year, u/s 208–211.">ⓘ</span></label><input type="text" inputmode="numeric" autocomplete="off" class="money-input" id="advanceTax" value="0" /></div>
-          <div class="field"><label for="selfAssessmentTax">Self-Assessment Tax <span class="info-i" title="Tax paid u/s 140A at the time of filing the return, to clear any balance tax liability.">ⓘ</span></label><input type="text" inputmode="numeric" autocomplete="off" class="money-input" id="selfAssessmentTax" value="0" /></div>
-          <div class="field"><label for="relief89">Relief u/s 89 <span class="info-i" title="Sec 89: relief for tax arising from salary received in arrears or advance, which would otherwise be taxed at a higher rate due to bunching into one year.">ⓘ</span></label><input type="text" inputmode="numeric" autocomplete="off" class="money-input" id="relief89" value="0" /></div>
-        </div>
-      </details>
-
-      <div id="results"></div>
-
-    </div>
-
-    <!-- STICKY SUMMARY SIDEBAR -->
-    <aside class="calc-sidebar">
-      <div class="summary-card">
-        <div class="summary-header">Tax Summary</div>
-        <div class="summary-body">
-          <div class="summary-boxes">
-            <div class="summary-box">
-              <span>OLD REGIME</span>
-              <strong id="sumOld">₹0</strong>
-            </div>
-            <div class="summary-box">
-              <span>NEW REGIME</span>
-              <strong id="sumNew">₹0</strong>
-            </div>
-          </div>
-          <div class="summary-row"><span>Recommended</span><strong id="sumRecommended">—</strong></div>
-          <div class="summary-row"><span>Estimated Saving</span><strong id="sumSaving">—</strong></div>
-          <div class="summary-row main"><span>Tax Payable</span><strong id="sumPayable">₹0</strong></div>
-
-          <button id="calcBtn" class="gold-btn full-btn">Calculate Tax</button>
-          <button id="addToScenarioBtn" class="util-btn full-btn scenario-add-btn">+ Add to Scenario</button>
-
-          <div class="util-grid">
-            <button id="loadSampleBtn" class="util-btn">Load Sample</button>
-            <button id="resetBtn" class="util-btn">Reset</button>
-            <button id="saveBtn" class="util-btn">Save</button>
-            <button id="loadSavedBtn" class="util-btn">Load Saved</button>
-            <button id="copySummaryBtn" class="util-btn">Copy Summary</button>
-            <button id="exportCsvBtn" class="util-btn">Export CSV</button>
-            <button id="downloadPdfBtn" class="util-btn dark-btn">Download PDF</button>
-            <button id="printBtn" class="util-btn dark-btn">Print</button>
-          </div>
-        </div>
-      </div>
-    </aside>
-  </div>
-</section>
-
-<!-- ============================== SCENARIO BUILDER ============================== -->
-<section class="tab-panel hidden" id="tab-scenarios">
-  <div class="card accordion-static" open>
-    <div class="static-header"><span>Scenario Builder</span><span class="head-tag partial">Up to 4 scenarios</span></div>
-    <p class="section-note">
-      Save the current calculation as a scenario, build up to four different income structures (e.g. Salary vs. Professional
-      vs. Business vs. a Mixed structure), then compare them side by side to see which results in the lowest tax.
-      Go to the <strong>Tax Calculator</strong> tab, fill in an income structure, click <strong>Calculate Tax</strong>, then
-      <strong>+ Add to Scenario</strong>. Clear the form and repeat for each scenario you want to compare.
-    </p>
-    <div id="scenarioCards" class="scenario-cards"></div>
-    <div id="scenarioComparison"></div>
-  </div>
-</section>
-
-<!-- ============================== ADVANCE TAX ============================== -->
-<section class="tab-panel hidden" id="tab-advance">
-  <div class="card accordion-static" open>
-    <div class="static-header"><span>Advance Tax Calculator</span><span class="head-tag">FY 2026-27</span></div>
-    <p class="section-note">Computes instalment-wise advance tax u/s 208–211. Normal taxpayers: 15% by 15 Jun, 45% by 15 Sep, 75% by 15 Dec, 100% by 15 Mar. Presumptive (44AD/44ADA): 100% by 15 Mar.</p>
-    <div class="two-col">
-      <div class="field"><label for="advAge">Taxpayer Category</label>
-        <select id="advAge">
-          <option value="below60">Individual (below 60)</option>
-          <option value="senior">Senior Citizen (60–80)</option>
-          <option value="supersenior">Super Senior Citizen (80+)</option>
-        </select>
-      </div>
-      <div class="field"><label for="advRegime">Regime</label>
-        <select id="advRegime">
-          <option value="new">New Regime</option>
-          <option value="old">Old Regime</option>
-        </select>
-      </div>
-      <div class="field"><label for="advIncome">Estimated Total Income</label><input type="text" inputmode="numeric" autocomplete="off" class="money-input" id="advIncome" value="0" /></div>
-      <div class="field"><label for="advTds">TDS / TCS deductible</label><input type="text" inputmode="numeric" autocomplete="off" class="money-input" id="advTds" value="0" /></div>
-      <div class="field"><label for="advTcs">TCS (separate, if any)</label><input type="text" inputmode="numeric" autocomplete="off" class="money-input" id="advTcs" value="0" /></div>
-      <div class="field"><label for="advRelief">Relief u/s 89 / 90 / 91</label><input type="text" inputmode="numeric" autocomplete="off" class="money-input" id="advRelief" value="0" /></div>
-    </div>
-    <label class="checkbox-row"><input type="checkbox" id="advPresumptive" /> Presumptive taxpayer (44AD / 44ADA) — single instalment by 15 March</label>
-    <div class="two-col">
-      <div class="field"><label for="advJun">Paid by 15 Jun</label><input type="text" inputmode="numeric" autocomplete="off" class="money-input" id="advJun" value="0" /></div>
-      <div class="field"><label for="advSep">Paid by 15 Sep</label><input type="text" inputmode="numeric" autocomplete="off" class="money-input" id="advSep" value="0" /></div>
-      <div class="field"><label for="advDec">Paid by 15 Dec</label><input type="text" inputmode="numeric" autocomplete="off" class="money-input" id="advDec" value="0" /></div>
-      <div class="field"><label for="advMar">Paid by 15 Mar</label><input type="text" inputmode="numeric" autocomplete="off" class="money-input" id="advMar" value="0" /></div>
-    </div>
-    <button id="advComputeBtn" class="gold-btn">Compute Advance Tax</button>
-    <div id="advResults"></div>
-  </div>
-</section>
-
-<!-- ============================== INTEREST 234B/234C ============================== -->
-<section class="tab-panel hidden" id="tab-interest">
-  <div class="card accordion-static">
-    <div class="static-header"><span>Interest u/s 234B &amp; 234C</span><span class="head-tag">Default Interest</span></div>
-    <p class="section-note">Section 234B: 1% per month on shortfall where advance tax paid is less than 90% of assessed tax. Section 234C: 1% per month for deferment of advance-tax instalments. Assessed tax is net of TDS/TCS and reliefs.</p>
-    <div class="two-col">
-      <div class="field"><label for="intAssessedTax">Assessed Tax (net of TDS/TCS)</label><input type="text" inputmode="numeric" autocomplete="off" class="money-input" id="intAssessedTax" value="0" /></div>
-      <div class="field"><label for="intAdvancePaid">Total Advance Tax Paid</label><input type="text" inputmode="numeric" autocomplete="off" class="money-input" id="intAdvancePaid" value="0" /></div>
-      <div class="field"><label for="intMonths234B">234B — months of default <span class="info-i" title="Number of months from 1 April of the assessment year until the date of determination/payment">ⓘ</span></label><input type="number" id="intMonths234B" min="0" value="0" /></div>
-    </div>
-    <label class="checkbox-row"><input type="checkbox" id="intPresumptive" /> Presumptive taxpayer (44AD / 44ADA)</label>
-    <div class="two-col">
-      <div class="field"><label for="intJun">Cumulative paid by 15 Jun</label><input type="text" inputmode="numeric" autocomplete="off" class="money-input" id="intJun" value="0" /></div>
-      <div class="field"><label for="intSep">Cumulative paid by 15 Sep</label><input type="text" inputmode="numeric" autocomplete="off" class="money-input" id="intSep" value="0" /></div>
-      <div class="field"><label for="intDec">Cumulative paid by 15 Dec</label><input type="text" inputmode="numeric" autocomplete="off" class="money-input" id="intDec" value="0" /></div>
-      <div class="field"><label for="intMar">Cumulative paid by 15 Mar</label><input type="text" inputmode="numeric" autocomplete="off" class="money-input" id="intMar" value="0" /></div>
-    </div>
-    <button id="intComputeBtn" class="gold-btn">Compute Interest</button>
-    <div id="intResults"></div>
-  </div>
-</section>
-
-<!-- ============================== TAX SLABS ============================== -->
-<section class="tab-panel hidden" id="tab-slabs">
-  <div class="card accordion-static">
-    <div class="static-header"><span>Income Tax Slab Rates</span><span class="head-tag">FY 2025-26 &amp; FY 2026-27</span></div>
-    <div id="slabsContent"></div>
-  </div>
-</section>
-
-<!-- ============================== TAX TABLE ============================== -->
-<section class="tab-panel hidden" id="tab-table">
-  <div class="card accordion-static">
-    <div class="static-header"><span>Quick-Reference Tax Table</span><span class="head-tag">Old vs New, by Income Level</span></div>
-    <p class="section-note">Illustrative total tax liability (no deductions, standard deduction only, salaried individual below 60) at common income levels — useful for quickly showing a client where the regime crossover happens.</p>
-    <div class="two-col" style="max-width:320px">
-      <div class="field"><label for="tableFY">Financial Year</label>
-        <select id="tableFY">
-          <option value="2025-26">FY 2025-26</option>
-          <option value="2026-27">FY 2026-27</option>
-        </select>
-      </div>
-    </div>
-    <div id="tableContent"></div>
-  </div>
-</section>
-
-<!-- ============================== ITR DUE DATES ============================== -->
-<section class="tab-panel hidden" id="tab-duedates">
-  <div class="card accordion-static">
-    <div class="static-header"><span>ITR Due Dates</span><span class="head-tag">AY 2026-27 &amp; AY 2027-28</span></div>
-    <p class="section-note">Standard statutory due dates under the Income-tax Act. Dates are extended only by specific CBDT notification/circular for a given assessment year — confirm against the latest notification before relying on these for filing.</p>
-    <table class="slab-table">
-      <thead><tr><th>Category of Taxpayer</th><th>Due Date</th></tr></thead>
-      <tbody>
-        <tr><td>Individuals / HUF — no audit required</td><td>31 July</td></tr>
-        <tr><td>Businesses requiring audit (incl. companies)</td><td>31 October</td></tr>
-        <tr><td>Taxpayers with transfer pricing report (Form 3CEB)</td><td>30 November</td></tr>
-        <tr><td>Belated return u/s 139(4)</td><td>31 December</td></tr>
-        <tr><td>Revised return u/s 139(5)</td><td>31 December</td></tr>
-        <tr><td>Updated return u/s 139(8A)</td><td>Within 48 months from end of relevant AY</td></tr>
-      </tbody>
-    </table>
-  </div>
-</section>
-
-<!-- ============================== HOW TO USE ============================== -->
-<section class="tab-panel hidden" id="tab-howto">
-  <div class="card accordion-static">
-    <div class="static-header"><span>How to Use This Calculator</span></div>
-    <ol class="howto-list">
-      <li>Select the Financial Year, Taxpayer Category (age), Taxpayer Type, and the regime(s) you want to compare on the <strong>Tax Calculator</strong> tab.</li>
-      <li>Expand each income head (Salary, House Property, Business/Profession, Capital Gains, Other Sources) and fill in the relevant figures. Leave anything not applicable at 0.</li>
-      <li>Under the Old Regime, fill in Chapter VI-A deductions (80C, 80D, etc.) — these are ignored automatically under the New Regime.</li>
-      <li>Enter any taxes already paid (TDS, TCS, advance tax, self-assessment tax) and relief u/s 89 in the last section.</li>
-      <li>Click <strong>Calculate Tax</strong> — the sticky summary panel on the right shows the Old vs New regime totals, which one is recommended, and the estimated saving.</li>
-      <li>Use <strong>Load Sample</strong> to see a worked example, <strong>Save / Load Saved</strong> to keep figures for a client between visits, and <strong>Export CSV / Download PDF / Print</strong> to share the computation.</li>
-      <li>Use the <strong>Advance Tax</strong> and <strong>Interest 234B/234C</strong> tabs to check instalment compliance and any default interest once the annual tax liability is known.</li>
-    </ol>
-  </div>
-</section>
-
-<!-- ============================== VALIDATION TESTS ============================== -->
-<section class="tab-panel hidden" id="tab-tests">
-  <div class="card accordion-static">
-    <div class="static-header"><span>Validation Tests</span><span class="head-tag">Self-Check</span></div>
-    <p class="section-note">A handful of hand-verified scenarios run against the live calculation engine, to confirm the maths hasn't regressed.</p>
-    <button id="runTestsBtn" class="gold-btn">Run Tests</button>
-    <div id="testResults"></div>
-  </div>
-</section>
-
+<div class="hub-header">
+  <h1>Tools</h1>
+  <p>A growing collection of calculators &amp; document tools</p>
 </div>
 
-<footer class="site-footer">
-  <p>This calculator is for illustrative purposes only and uses standard slabs/rules as known for FY 2025-26 (AY 2026-27). FY 2026-27 figures reuse the same slabs in the absence of a newer notified Budget.</p>
-</footer>
+<div class="hub-grid">
+  <a class="tool-card" href="tools/tax-calculator/index.html">
+    <h2>Income Tax Calculator</h2>
+    <p>FY 2025-26 &amp; FY 2026-27 — Old vs New Regime, Scenario Builder, Advance Tax, Interest 234B/234C</p>
+    <span class="tag">Available</span>
+  </a>
 
-<script src="script.js"></script>
+  <div class="tool-card disabled">
+    <h2>GST Calculator</h2>
+    <p>Coming soon</p>
+    <span class="tag">Planned</span>
+  </div>
+
+  <a class="tool-card" href="tools/sow-generator/index.html">
+    <h2>Generate SOW</h2>
+    <p>Create a Statement of Work document from the company template — formatting preserved, only values filled in</p>
+    <span class="tag">Available</span>
+  </a>
+
+  <div class="tool-card disabled">
+    <h2>Agreement Maker</h2>
+    <p>Coming soon</p>
+    <span class="tag">Planned</span>
+  </div>
+</div>
+
 </body>
 </html>

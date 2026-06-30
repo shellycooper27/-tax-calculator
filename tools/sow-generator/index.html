@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Generate SOW — Statement of Work Generator</title>
+<link rel="stylesheet" href="/tools/tax-calculator/style.css" />
+<link rel="stylesheet" href="/shared/theme.css" />
+<link rel="stylesheet" href="/tools/sow-generator/style.css" />
+</head>
+<body>
+
+<nav class="tabnav">
+  <a class="tab-btn active" href="/tools/sow-generator/index.html">Generate SOW</a>
+</nav>
+
+<div class="wrap">
+
+  <section class="tab-panel" id="tab-sow">
+
+    <div class="card">
+      <h2>Statement of Work — Generator</h2>
+      <p class="hint" style="margin: -8px 0 16px; color: var(--muted); font-size: 13px;">
+        Fill in the details below to generate a Statement of Work document from the company template.
+        All formatting, letterhead, and clauses are preserved — only the values you enter here are inserted.
+      </p>
+
+      <form id="sowForm" novalidate>
+        <div class="controls controls-5">
+
+          <div class="field">
+            <label for="sowNumber">SoW Number <span aria-hidden="true" style="color: var(--danger);">*</span></label>
+            <input type="text" id="sowNumber" name="sow_number" placeholder="e.g. PW_SPC_001" required />
+          </div>
+
+          <div class="field">
+            <label for="sowDate">SoW Date <span aria-hidden="true" style="color: var(--danger);">*</span></label>
+            <input type="text" id="sowDate" name="sow_date" placeholder="e.g. 15th July, 2026" required />
+          </div>
+
+          <div class="field">
+            <label for="resourceName">Resource Name <span aria-hidden="true" style="color: var(--danger);">*</span></label>
+            <input type="text" id="resourceName" name="resource_name" placeholder="e.g. John Doe" required />
+          </div>
+
+          <div class="field">
+            <label for="msaEffectiveDate">MSA Effective Date <span aria-hidden="true" style="color: var(--danger);">*</span></label>
+            <input type="text" id="msaEffectiveDate" name="msa_effective_date" placeholder="e.g. 1st June, 2026" required />
+          </div>
+
+          <div class="field">
+            <label for="monthlyFee">Monthly Fee <span aria-hidden="true" style="color: var(--danger);">*</span></label>
+            <input type="text" id="monthlyFee" name="monthly_fee" placeholder="e.g. INR. 1,50,000" required />
+          </div>
+
+          <div class="field">
+            <label for="role">Role <span aria-hidden="true" style="color: var(--danger);">*</span></label>
+            <input type="text" id="role" name="role" placeholder="e.g. Engineering Manager Consultant" required />
+          </div>
+
+          <div class="field">
+            <label for="sowEndDate">SOW End Date</label>
+            <input type="text" id="sowEndDate" name="sow_end_date" placeholder="As mutually agreed upon by the parties" />
+          </div>
+
+        </div>
+
+        <button type="submit" class="gold-btn full-btn" id="generateBtn">Generate SOW</button>
+      </form>
+    </div>
+
+  </section>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/pizzip@3.1.6/dist/pizzip.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/docxtemplater@3.47.0/build/docxtemplater.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+<script src="/shared/toast.js"></script>
+<script src="/tools/sow-generator/script.js"></script>
+</body>
+</html>
